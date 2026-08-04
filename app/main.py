@@ -6,19 +6,16 @@ Standalone production-ready FastAPI application.
 from __future__ import annotations
 
 import io
-import json
 import secrets
-import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import qrcode
 from fastapi import FastAPI, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, StreamingResponse, JSONResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel, EmailStr, Field
 
 from .data_loader import query_events, summarize
 from .geocode import geocode_address
@@ -35,16 +32,9 @@ app = FastAPI(
 
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-# Simple in-memory store for shareable reports (replace with Redis/DB in high-volume production)
+# Simple in-memory store for shareable reports
 REPORT_STORE: dict[str, dict[str, Any]] = {}
-REPORT_TTL_HOURS = 72  # keep shareable links for 3 days
-
-
-class RepInfo(BaseModel):
-    name: str = Field(..., min_length=1, max_length=100)
-    title: str = Field(default="Roofing Consultant", max_length=80)
-    phone: str = Field(default="", max_length=30)
-    email: str = Field(default="", max_length=120)
+REPORT_TTL_HOURS = 72
 
 
 def _make_report_id() -> str:
@@ -52,7 +42,6 @@ def _make_report_id() -> str:
 
 
 def _cleanup_old_reports() -> None:
-    """Very lightweight TTL cleanup."""
     now = datetime.now(timezone.utc)
     to_delete = []
     for rid, data in REPORT_STORE.items():
@@ -66,8 +55,9 @@ def _cleanup_old_reports() -> None:
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     return TEMPLATES.TemplateResponse(
-        "index.html",
-        {"request": request, "error": None},
+        request=request,
+        name="index.html",
+        context={"error": None},
     )
 
 
@@ -83,16 +73,18 @@ async def generate_report(
     address = address.strip()
     if len(address) < 8:
         return TEMPLATES.TemplateResponse(
-            "index.html",
-            {"request": request, "error": "Please enter a full street address including city and state."},
+            request=request,
+            name="index.html",
+            context={"error": "Please enter a full street address including city and state."},
             status_code=400,
         )
 
     geo = await geocode_address(address)
     if not geo:
         return TEMPLATES.TemplateResponse(
-            "index.html",
-            {"request": request, "error": "Could not locate that address. Please check the spelling and try again."},
+            request=request,
+            name="index.html",
+            context={"error": "Could not locate that address. Please check the spelling and try again."},
             status_code=400,
         )
 
@@ -117,7 +109,7 @@ async def generate_report(
             "email": rep_email.strip(),
         },
         "generated_at": now.strftime("%d %b %Y at %H:%M UTC"),
-        "data_period": f"Last 12 months (from {(now.replace(year=now.year-1) if now.month >= 1 else now).strftime('%b %Y')} available official data)",
+        "data_period": "Last 12 months of available official data",
         "lookback_note": "Data sourced from the official NOAA/SPC Severe Weather Database. Official storm reports typically lag real-time by several weeks to a few months.",
         "_created": now,
     }
@@ -126,9 +118,9 @@ async def generate_report(
     REPORT_STORE[report_id] = report_data
 
     return TEMPLATES.TemplateResponse(
-        "report.html",
-        {
-            "request": request,
+        request=request,
+        name="report.html",
+        context={
             "r": report_data,
             "share_url": str(request.base_url) + f"r/{report_id}",
         },
@@ -141,9 +133,9 @@ async def view_shared_report(request: Request, report_id: str):
     if not data:
         raise HTTPException(status_code=404, detail="Report not found or has expired.")
     return TEMPLATES.TemplateResponse(
-        "report.html",
-        {
-            "request": request,
+        request=request,
+        name="report.html",
+        context={
             "r": data,
             "share_url": str(request.base_url) + f"r/{report_id}",
             "is_shared": True,
