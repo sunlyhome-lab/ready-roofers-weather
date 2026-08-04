@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <!-- Leaflet CSS (free map) -->
+  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
   <style>
@@ -308,9 +308,9 @@
           <dt>Data Period</dt>
           <dd>Last 12 months of available official data</dd>
           <dt>Search Radius</dt>
-          <dd>10 miles</dd>
+          <dd>12 miles</dd>
           <dt>Filters</dt>
-          <dd>Hail &gt; 1.00&quot; · Wind &gt; 60 mph</dd>
+          <dd>Hail ≥ 1.00&quot; · Wind ≥ 58 mph</dd>
           <dt>Total Events</dt>
           <dd>{{ r.summary.total }}</dd>
         </dl>
@@ -379,7 +379,7 @@
         </table>
       </div>
       {% else %}
-      <p style="color:var(--muted);">No qualifying hail (&gt;1&quot;) or wind (&gt;60 mph) events were found within 10 miles over the available lookback period.</p>
+      <p style="color:var(--muted);">No qualifying hail (≥1&quot;) or wind (≥58 mph) events were found within 12 miles over the available lookback period.</p>
       {% endif %}
     </div>
 
@@ -421,8 +421,8 @@
         (hail and damaging wind reports compiled from National Weather Service Storm Data).
       </p>
       <p>
-        Events are filtered to a 10-mile radius of the geocoded address, limited to the most recent 12 months of available data,
-        and restricted to hail larger than 1.00 inch and wind speeds greater than 60 mph.
+        Events are filtered to a 12-mile radius of the geocoded address, limited to the most recent 12 months of available data,
+        and restricted to hail of 1.00 inch or larger and wind speeds of 58 mph or greater.
       </p>
       <p>
         <strong>Note on data lag:</strong> Official SPC/NWS storm reports are quality-controlled and typically lag real-time observations
@@ -441,11 +441,12 @@
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    // Create the interactive map
-    var map = L.map('map').setView([{{ r.lat }}, {{ r.lon }}], 15);
+    // Create the interactive map with satellite imagery
+    var map = L.map('map').setView([{{ r.lat }}, {{ r.lon }}], 18);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap'
+    // Esri World Imagery (satellite view)
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles © Esri'
     }).addTo(map);
 
     // Red pin marker
