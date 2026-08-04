@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Weather History Report | Ready Roofers</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0f172a;
+      --accent: #1e40af;
+      --accent-light: #3b82f6;
+      --border: #e2e8f0;
+      --muted: #64748b;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --danger: #dc2626;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--primary);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+    .header {
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .header img { height: 42px; width: auto; }
+    .header-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--primary);
+    }
+    .header-sub {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .container {
+      max-width: 640px;
+      margin: 2.5rem auto;
+      padding: 0 1.25rem;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 1px 3px rgb(0 0 0 / 0.04);
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.35rem;
+    }
+    .lead {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin-bottom: 1.75rem;
+    }
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 500;
+      margin-bottom: 0.35rem;
+      color: var(--primary);
+    }
+    input, select {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      transition: border-color 0.15s;
+    }
+    input:focus {
+      outline: none;
+      border-color: var(--accent-light);
+      box-shadow: 0 0 0 3px rgb(59 130 246 / 0.15);
+    }
+    .field { margin-bottom: 1.15rem; }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    @media (max-width: 520px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      margin: 1.5rem 0 0.85rem;
+      padding-bottom: 0.35rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      padding: 0.85rem 1.25rem;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+      font-size: 0.95rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+      margin-top: 0.5rem;
+    }
+    .btn:hover { background: #1e3a8a; }
+    .btn:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+    .error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: var(--danger);
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      margin-bottom: 1.25rem;
+    }
+    .note {
+      margin-top: 1.5rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+    .footer {
+      text-align: center;
+      padding: 2rem 1rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <img src="/static/logo_clean.png" alt="Ready Roofers" />
+    <div>
+      <div class="header-title">Weather History Report</div>
+      <div class="header-sub">Severe weather lookup for claim support</div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="card">
+      <h1>Generate Weather Report</h1>
+      <p class="lead">Enter a property address to pull official severe weather history (hail &amp; high wind) for the past 12 months within 10 miles.</p>
+
+      {% if error %}
+      <div class="error">{{ error }}</div>
+      {% endif %}
+
+      <form method="post" action="/generate" id="reportForm">
+        <div class="field">
+          <label for="address">Property Address</label>
+          <input type="text" id="address" name="address" required
+                 placeholder="e.g. 248 Glenview Avenue, Flower Mound, TX 75028"
+                 value="" />
+        </div>
+
+        <div class="section-label">Sales Representative (appears on report)</div>
+
+        <div class="field">
+          <label for="rep_name">Your Full Name</label>
+          <input type="text" id="rep_name" name="rep_name" required placeholder="Jordan Smith" />
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label for="rep_title">Title</label>
+            <input type="text" id="rep_title" name="rep_title" value="Roofing Consultant" placeholder="Roofing Consultant" />
+          </div>
+          <div class="field">
+            <label for="rep_phone">Phone</label>
+            <input type="tel" id="rep_phone" name="rep_phone" placeholder="(214) 555-0123" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="rep_email">Email</label>
+          <input type="email" id="rep_email" name="rep_email" placeholder="jordan@readyroofers.com" />
+        </div>
+
+        <button type="submit" class="btn" id="submitBtn">Generate Report</button>
+      </form>
+
+      <p class="note">
+        Data is drawn exclusively from the official NOAA / Storm Prediction Center Severe Weather Database.
+        Reports include only hail greater than 1&quot; and wind greater than 60 mph within a 10-mile radius over the most recent 12 months of available official data.
+        This tool is for informational and sales-support purposes only and does not constitute a certified engineering or insurance report.
+      </p>
+    </div>
+  </main>
+
+  <footer class="footer">
+    © Ready Roofers · Weather History Tool · Powered by public NOAA / SPC data
+  </footer>
+
+  <script>
+    document.getElementById('reportForm').addEventListener('submit', function() {
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = 'Generating report…';
+    });
+  </script>
+</body>
+</html>
