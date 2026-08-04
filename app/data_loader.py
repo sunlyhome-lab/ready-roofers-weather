@@ -1,6 +1,10 @@
 """
 Load and filter official SPC severe weather database CSVs (public domain).
-Filters: last 12 months, 10-mile radius, hail > 1.00", wind > 60 mph.
+Softened filters for better event coverage while remaining defensible:
+- Hail ≥ 1.00"
+- Wind ≥ 58 mph
+- 12-mile radius
+- Last 12 months
 """
 
 from __future__ import annotations
@@ -10,7 +14,6 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-import numpy as np
 import pandas as pd
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
@@ -58,14 +61,14 @@ def load_spc_data() -> tuple[pd.DataFrame, pd.DataFrame]:
         df["slon"] = pd.to_numeric(df["slon"], errors="coerce")
         df["mag"] = pd.to_numeric(df["mag"], errors="coerce")
 
-    # Wind: convert knots → mph and keep only meaningful reports
+    # Wind: convert knots → mph
     if not wind.empty:
         wind["mag_mph"] = wind["mag"] * KNOTS_TO_MPH
         wind = wind[wind["mag_mph"].notna() & (wind["mag_mph"] > 0)]
     else:
         wind["mag_mph"] = pd.Series(dtype=float)
 
-    # Hail: keep mag as inches
+    # Hail
     if not hail.empty:
         hail["mag_inches"] = hail["mag"]
         hail = hail[hail["mag_inches"].notna() & (hail["mag_inches"] > 0)]
@@ -76,7 +79,6 @@ def load_spc_data() -> tuple[pd.DataFrame, pd.DataFrame]:
 
 
 def severity_for_hail(inches: float) -> tuple[str, int]:
-    """Return (label, score) roughly matching common industry / sample grading."""
     if inches >= 2.0:
         return "Severe", 4
     if inches >= 1.5:
@@ -91,7 +93,7 @@ def severity_for_wind(mph: float) -> tuple[str, int]:
         return "Severe", 4
     if mph >= 70:
         return "Significant", 3
-    if mph >= 60:
+    if mph >= 58:
         return "Moderate", 2
     return "Minimal", 1
 
@@ -100,18 +102,15 @@ def query_events(
     lat: float,
     lon: float,
     lookback_days: int = 365,
-    radius_miles: float = 10.0,
-    min_hail_inches: float = 1.01,  # strictly > 1"
-    min_wind_mph: float = 60.0,
+    radius_miles: float = 12.0,          # softened from 10
+    min_hail_inches: float = 1.00,       # softened from 1.01
+    min_wind_mph: float = 58.0,          # softened from 60
 ) -> list[dict[str, Any]]:
     """
     Return filtered, sorted event list (most recent first).
-    Each event dict is ready for the report template.
     """
     hail_df, wind_df = load_spc_data()
-    # Naive datetime for comparison with pandas (which is also naive)
     cutoff = datetime.utcnow() - timedelta(days=lookback_days)
-    # Convert to pandas Timestamp for reliable comparison
     cutoff_ts = pd.Timestamp(cutoff)
 
     events: list[dict[str, Any]] = []
@@ -120,12 +119,11 @@ def query_events(
     if not hail_df.empty:
         h = hail_df[
             (hail_df["date"] >= cutoff_ts)
-            & (hail_df["mag_inches"] > min_hail_inches)
+            & (hail_df["mag_inches"] >= min_hail_inches)
             & hail_df["slat"].notna()
             & hail_df["slon"].notna()
         ].copy()
         if not h.empty:
-            # Vectorized approximate distance filter first (fast bounding box)
             lat_delta = radius_miles / 69.0
             lon_delta = radius_miles / (69.0 * max(0.2, abs(math.cos(math.radians(lat)))))
             h = h[
