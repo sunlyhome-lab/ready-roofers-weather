@@ -6,6 +6,10 @@
   <title>Weather History Report – {{ r.address }} | Ready Roofers</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Leaflet CSS (free map) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
   <style>
     :root {
       --primary: #0f172a;
@@ -33,7 +37,6 @@
       min-height: 100vh;
       box-shadow: 0 0 40px rgb(0 0 0 / 0.06);
     }
-    /* Header */
     .topbar {
       display: flex;
       justify-content: space-between;
@@ -57,7 +60,6 @@
       font-size: 0.75rem;
       color: var(--muted);
     }
-    /* Title block */
     .title-block {
       padding: 1.75rem 1.75rem 1.25rem;
       border-bottom: 1px solid var(--border);
@@ -72,7 +74,6 @@
       color: var(--muted);
       font-family: ui-monospace, monospace;
     }
-    /* Info + map row */
     .info-map {
       display: grid;
       grid-template-columns: 1fr 280px;
@@ -91,33 +92,13 @@
     }
     .info-grid dt { color: var(--muted); }
     .info-grid dd { font-weight: 500; }
-    .map-box {
+    #map {
+      height: 200px;
+      width: 100%;
       border: 1px solid var(--border);
       border-radius: 8px;
-      overflow: hidden;
-      height: 180px;
-      background: #e2e8f0;
-      position: relative;
+      z-index: 1;
     }
-    .map-box img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    .map-pin {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -100%);
-      width: 24px;
-      height: 24px;
-      background: var(--severe);
-      border-radius: 50% 50% 50% 0;
-      transform: translate(-50%, -100%) rotate(-45deg);
-      border: 2px solid #fff;
-      box-shadow: 0 2px 6px rgb(0 0 0 / 0.3);
-    }
-    /* Summary cards */
     .summary-row {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -155,7 +136,6 @@
       padding: 0.25rem 0.7rem;
       border-radius: 999px;
     }
-    /* Table */
     .section {
       padding: 1.5rem 1.75rem;
     }
@@ -163,7 +143,6 @@
       font-size: 1.05rem;
       font-weight: 600;
       margin-bottom: 1rem;
-      color: var(--primary);
     }
     table {
       width: 100%;
@@ -179,18 +158,15 @@
       color: var(--muted);
       font-size: 0.75rem;
       text-transform: uppercase;
-      letter-spacing: 0.03em;
     }
     td {
       padding: 0.55rem 0.6rem;
       border-bottom: 1px solid var(--border);
       vertical-align: top;
     }
-    tr:last-child td { border-bottom: none; }
     .sev-Moderate { color: var(--moderate); font-weight: 600; }
     .sev-Significant { color: var(--significant); font-weight: 600; }
     .sev-Severe { color: var(--severe); font-weight: 600; }
-    /* Event details */
     .event-card {
       border: 1px solid var(--border);
       border-radius: 8px;
@@ -212,7 +188,6 @@
       font-size: 0.85rem;
       color: #334155;
     }
-    /* Actions bar (no print) */
     .actions {
       position: sticky;
       top: 0;
@@ -236,11 +211,7 @@
       font-weight: 600;
       cursor: pointer;
       text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
     }
-    .actions a:hover, .actions button:hover { background: #e2e8f0; }
     .actions .share-url {
       font-size: 0.75rem;
       opacity: 0.85;
@@ -249,7 +220,6 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    /* Methodology & disclaimer */
     .method {
       background: #f8fafc;
       border-top: 1px solid var(--border);
@@ -262,7 +232,6 @@
       margin-bottom: 0.5rem;
       color: var(--primary);
     }
-    .method p { margin-bottom: 0.6rem; }
     .disclaimer {
       padding: 1.25rem 1.75rem 2rem;
       font-size: 0.75rem;
@@ -270,7 +239,6 @@
       border-top: 1px solid var(--border);
       line-height: 1.55;
     }
-    /* Rep footer */
     .rep-block {
       padding: 1.25rem 1.75rem;
       border-top: 1px solid var(--border);
@@ -283,9 +251,7 @@
     }
     .rep-info strong { display: block; font-size: 0.95rem; }
     .rep-info span { font-size: 0.8rem; color: var(--muted); }
-    .qr-box {
-      text-align: center;
-    }
+    .qr-box { text-align: center; }
     .qr-box img {
       width: 90px;
       height: 90px;
@@ -298,17 +264,14 @@
       color: var(--muted);
       margin-top: 0.25rem;
     }
-    /* Print */
     @media print {
       .actions { display: none !important; }
       body { background: #fff; }
       .page { box-shadow: none; max-width: none; }
-      .map-box { height: 160px; }
     }
   </style>
 </head>
 <body>
-  <!-- Sticky action bar (hidden on print) -->
   <div class="actions no-print">
     <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
       <button onclick="window.print()">Print / Save as PDF</button>
@@ -319,7 +282,6 @@
   </div>
 
   <div class="page">
-    <!-- Header -->
     <div class="topbar">
       <div class="brand">
         <img src="/static/logo_clean.png" alt="Ready Roofers" />
@@ -331,13 +293,11 @@
       </div>
     </div>
 
-    <!-- Title -->
     <div class="title-block">
       <h1>{{ r.address }}</h1>
       <div class="coords">{{ "%.6f"|format(r.lat) }}, {{ "%.6f"|format(r.lon) }}</div>
     </div>
 
-    <!-- Info + Map -->
     <div class="info-map">
       <div>
         <dl class="info-grid">
@@ -355,18 +315,11 @@
           <dd>{{ r.summary.total }}</dd>
         </dl>
       </div>
-      <div class="map-box">
-        <!-- Free OSM static map approximation -->
-        <img
-          src="https://staticmap.openstreetmap.de/staticmap.php?center={{ r.lat }},{{ r.lon }}&zoom=14&size=280x180&maptype=mapnik&markers={{ r.lat }},{{ r.lon }},red-pushpin"
-          alt="Map of property location"
-          onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\'display:flex;align-items:center;justify-content:center;height:100%;color:#64748b;font-size:0.85rem;\'>Map unavailable<br>{{ '%.4f'|format(r.lat) }}, {{ '%.4f'|format(r.lon) }}</div>';"
-        />
-        <div class="map-pin" title="Property location"></div>
+      <div>
+        <div id="map"></div>
       </div>
     </div>
 
-    <!-- Summary cards -->
     <div class="summary-row">
       <div class="summary-card">
         <div class="num">{{ r.summary.total }}</div>
@@ -396,7 +349,6 @@
       </div>
     </div>
 
-    <!-- History table -->
     <div class="section">
       <h2>Severe Weather History</h2>
       {% if r.events %}
@@ -427,11 +379,10 @@
         </table>
       </div>
       {% else %}
-      <p style="color:var(--muted);">No qualifying hail (&gt;1&quot;) or wind (&gt;60 mph) events were found in the official database within 10 miles over the available lookback period.</p>
+      <p style="color:var(--muted);">No qualifying hail (&gt;1&quot;) or wind (&gt;60 mph) events were found within 10 miles over the available lookback period.</p>
       {% endif %}
     </div>
 
-    <!-- Detailed events -->
     {% if r.events %}
     <div class="section" style="border-top:1px solid var(--border);">
       <h2>Weather Event Details</h2>
@@ -450,7 +401,6 @@
     </div>
     {% endif %}
 
-    <!-- Rep + QR -->
     <div class="rep-block">
       <div class="rep-info">
         <strong>{{ r.rep.name }}</strong>
@@ -464,34 +414,43 @@
       </div>
     </div>
 
-    <!-- Methodology -->
     <div class="method">
       <h3>Data Sources &amp; Methodology</h3>
       <p>
         This report aggregates severe weather event data from the official NOAA Storm Prediction Center (SPC) Severe Weather Database
-        (hail and damaging wind reports compiled from National Weather Service Storm Data). These are the same underlying official
-        reports used by government agencies and many commercial weather intelligence platforms.
+        (hail and damaging wind reports compiled from National Weather Service Storm Data).
       </p>
       <p>
         Events are filtered to a 10-mile radius of the geocoded address, limited to the most recent 12 months of available data,
-        and restricted to hail larger than 1.00 inch and wind speeds greater than 60 mph. Distance is calculated using the haversine formula.
-        Severity scores are assigned algorithmically based on magnitude thresholds consistent with common industry practice.
+        and restricted to hail larger than 1.00 inch and wind speeds greater than 60 mph.
       </p>
       <p>
         <strong>Note on data lag:</strong> Official SPC/NWS storm reports are quality-controlled and typically lag real-time observations
-        by several weeks to a few months. The most recent events may not yet appear in the public archive.
+        by several weeks to a few months.
       </p>
     </div>
 
-    <!-- Disclaimer -->
     <div class="disclaimer">
       <strong>Disclaimer</strong><br>
       This weather history report is provided for informational and sales-support purposes only and does not constitute an expert witness report,
       professional engineering assessment, or official insurance claim documentation. Data is sourced from third-party public government databases
-      and may be subject to reporting delays, incompleteness, or later revision. Severity ratings are algorithmically determined.
-      Users should consult qualified professionals including structural engineers, roofing contractors, and insurance adjusters before making
-      decisions based on this data. Ready Roofers is not responsible for any decisions made in reliance upon this report.
+      and may be subject to reporting delays, incompleteness, or later revision. Ready Roofers is not responsible for any decisions made in reliance upon this report.
     </div>
   </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    // Create the interactive map
+    var map = L.map('map').setView([{{ r.lat }}, {{ r.lon }}], 15);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    // Red pin marker
+    L.marker([{{ r.lat }}, {{ r.lon }}]).addTo(map)
+      .bindPopup("{{ r.address | e }}").openPopup();
+  </script>
 </body>
 </html>
