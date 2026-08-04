@@ -1,46 +1,61 @@
 """
-Free geocoding via OpenStreetMap Nominatim.
-Respects usage policy: custom User-Agent, low volume.
+Geocoding via Geoapify (free tier).
 """
 
 from __future__ import annotations
 
-import httpx
+import os
 from typing import Optional
 
+import httpx
 
-NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
-USER_AGENT = "ReadyRoofersWeatherReport/1.0 (sales-enablement; contact@readyroofers.example)"
+GEOAPIFY_URL = "https://api.geoapify.com/v1/geocode/search"
 
 
 async def geocode_address(address: str) -> Optional[dict]:
     """
     Return {'lat': float, 'lon': float, 'display_name': str} or None.
     """
+    api_key = os.getenv("GEOAPIFY_API_KEY")
+    if not api_key:
+        return None
+
     params = {
-        "q": address,
-        "format": "json",
-        "addressdetails": 1,
+        "text": address,
+        "apiKey": api_key,
         "limit": 1,
-        "countrycodes": "us",
-    }
-    headers = {
-        "User-Agent": USER_AGENT,
-        "Accept-Language": "en-US,en",
+        "format": "json",
+        "filter": "countrycode:us",
     }
 
     async with httpx.AsyncClient(timeout=15.0) as client:
         try:
-            resp = await client.get(NOMINATIM_URL, params=params, headers=headers)
+            resp = await client.get(GEOAPIFY_URL, params=params)
             resp.raise_for_status()
             data = resp.json()
-            if not data:
+
+            results = data.get("results") or data.get("features") or []
+            if not results:
                 return None
-            item = data[0]
+
+            # Geoapify can return either "results" or GeoJSON "features"
+            item = results[0]
+            if "geometry" in item:  # GeoJSON style
+                lon, lat = item["geometry"]["coordinates"]
+                props = item.get("properties", {})
+                display = props.get("formatted") or props.get("address_line1") or address
+            else:  # simple results style
+                lat = item.get("lat")
+                lon = item.get("lon")
+                display = item.get("formatted") or item.get("address_line1") or address
+
+            if lat is None or lon is None:
+                return None
+
             return {
-                "lat": float(item["lat"]),
-                "lon": float(item["lon"]),
-                "display_name": item.get("display_name", address),
+                "lat": float(lat),
+                "lon": float(lon),
+                "display_name": display,
             }
         except Exception:
             return None
